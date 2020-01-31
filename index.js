@@ -7,6 +7,7 @@ const IORedis = require("ioredis");
 module.exports = fig => {
   const redis = fig.redis;
   const isIORedis = Boolean(fig.isIORedis);
+  const isCluster = Boolean(fig.isCluster);
 
   const parse = (resp, opt) =>
     new Promise((resolve, reject) => {
@@ -36,7 +37,9 @@ module.exports = fig => {
   };
 
   const makeKey = (keySpace, key, cacheKeyFn) =>
-    `${keySpace}:${cacheKeyFn(key)}`;
+    isCluster
+      ? `{${keySpace}}:${cacheKeyFn(key)}`
+      : `${keySpace}:${cacheKeyFn(key)}`;
 
   const rSetAndGet = (keySpace, key, rawVal, opt) =>
     toString(rawVal, opt).then(

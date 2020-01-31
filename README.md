@@ -59,13 +59,14 @@ with a few differences. Read through the [Facebook Dataloader documentation](htt
 
 #### Dependency inject a Redis Connection
 
-You can specify `isIORedis` in config if using ioredis as your redis client.
+You can specify `isIORedis` in config if using ioredis as your redis client. Use `isCluster` to support redis clustering.
 
 ```javascript
 const redis = require("redis").createClient();
 const RedisDataLoader = require("redis-dataloader")({
   redis: redis,
-  isIORedis: true
+  isIORedis: true,
+  isCluster: true
 });
 ```
 
