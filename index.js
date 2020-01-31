@@ -1,17 +1,17 @@
-const _ = require('lodash');
-const Promise = require('bluebird');
-const DataLoader = require('dataloader');
-const stringify = require('json-stable-stringify');
-const IORedis = require('ioredis');
+const _ = require("lodash");
+const Promise = require("bluebird");
+const DataLoader = require("dataloader");
+const stringify = require("json-stable-stringify");
+const IORedis = require("ioredis");
 
 module.exports = fig => {
   const redis = fig.redis;
-  const isIORedis = redis instanceof IORedis;
+  const isIORedis = Boolean(fig.isIORedis);
 
   const parse = (resp, opt) =>
     new Promise((resolve, reject) => {
       try {
-        if (resp === '' || resp === null) {
+        if (resp === "" || resp === null) {
           resolve(resp);
         } else if (opt.deserialize) {
           resolve(opt.deserialize(resp));
@@ -25,13 +25,13 @@ module.exports = fig => {
 
   const toString = (val, opt) => {
     if (val === null) {
-      return Promise.resolve('');
+      return Promise.resolve("");
     } else if (opt.serialize) {
       return Promise.resolve(opt.serialize(val));
     } else if (_.isObject(val)) {
       return Promise.resolve(JSON.stringify(val));
     } else {
-      return Promise.reject(new Error('Must be Object or Null'));
+      return Promise.reject(new Error("Must be Object or Null"));
     }
   };
 
@@ -61,9 +61,8 @@ module.exports = fig => {
 
   const rGet = (keySpace, key, opt) =>
     new Promise((resolve, reject) =>
-      redis.get(
-        makeKey(keySpace, key, opt.cacheKeyFn),
-        (err, result) => (err ? reject(err) : parse(result, opt).then(resolve))
+      redis.get(makeKey(keySpace, key, opt.cacheKeyFn), (err, result) =>
+        err ? reject(err) : parse(result, opt).then(resolve)
       )
     );
 
@@ -81,19 +80,18 @@ module.exports = fig => {
 
   const rDel = (keySpace, key, opt) =>
     new Promise((resolve, reject) =>
-      redis.del(
-        makeKey(keySpace, key, opt.cacheKeyFn),
-        (err, resp) => (err ? reject(err) : resolve(resp))
+      redis.del(makeKey(keySpace, key, opt.cacheKeyFn), (err, resp) =>
+        err ? reject(err) : resolve(resp)
       )
     );
 
   return class RedisDataLoader {
     constructor(ks, userLoader, opt) {
       const customOptions = [
-        'expire',
-        'serialize',
-        'deserialize',
-        'cacheKeyFn',
+        "expire",
+        "serialize",
+        "deserialize",
+        "cacheKeyFn"
       ];
       this.opt = _.pick(opt, customOptions) || {};
       this.opt.cacheKeyFn =
@@ -103,7 +101,7 @@ module.exports = fig => {
         keys =>
           rMGet(this.keySpace, keys, this.opt).then(results =>
             Promise.map(results, (v, i) => {
-              if (v === '') {
+              if (v === "") {
                 return Promise.resolve(null);
               } else if (v === null) {
                 return userLoader
@@ -111,7 +109,7 @@ module.exports = fig => {
                   .then(resp =>
                     rSetAndGet(this.keySpace, keys[i], resp, this.opt)
                   )
-                  .then(r => (r === '' ? null : r));
+                  .then(r => (r === "" ? null : r));
               } else {
                 return Promise.resolve(v);
               }
@@ -127,23 +125,23 @@ module.exports = fig => {
     load(key) {
       return key
         ? Promise.resolve(this.loader.load(key))
-        : Promise.reject(new TypeError('key parameter is required'));
+        : Promise.reject(new TypeError("key parameter is required"));
     }
 
     loadMany(keys) {
       return keys
         ? Promise.resolve(this.loader.loadMany(keys))
-        : Promise.reject(new TypeError('keys parameter is required'));
+        : Promise.reject(new TypeError("keys parameter is required"));
     }
 
     prime(key, val) {
       if (!key) {
-        return Promise.reject(new TypeError('key parameter is required'));
+        return Promise.reject(new TypeError("key parameter is required"));
       } else if (val === undefined) {
-        return Promise.reject(new TypeError('value parameter is required'));
+        return Promise.reject(new TypeError("value parameter is required"));
       } else {
         return rSetAndGet(this.keySpace, key, val, this.opt).then(r => {
-          this.loader.clear(key).prime(key, r === '' ? null : r);
+          this.loader.clear(key).prime(key, r === "" ? null : r);
         });
       }
     }
@@ -151,7 +149,7 @@ module.exports = fig => {
     clear(key) {
       return key
         ? rDel(this.keySpace, key, this.opt).then(() => this.loader.clear(key))
-        : Promise.reject(new TypeError('key parameter is required'));
+        : Promise.reject(new TypeError("key parameter is required"));
     }
 
     clearAllLocal() {
